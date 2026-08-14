@@ -1,907 +1,448 @@
 package com.example.serviceend
 
-import android.app.Activity
+import android.app.DatePickerDialog
 import android.os.Bundle
-import android.graphics.Color
-import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
+import android.text.InputType
 import android.view.Gravity
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.floor
-import kotlin.math.round
 
-data class JDate(
-    val y: Int,
-    val m: Int,
-    val d: Int
-)
+class MainActivity : AppCompatActivity() {
 
-class MainActivity : Activity() {
+    private lateinit var startDateText: TextView
+    private lateinit var extraDeductionInput: EditText
+    private lateinit var resultText: TextView
 
-    private lateinit var start: EditText
-    private lateinit var extraMonths: EditText
-    private lateinit var extraDays: EditText
-    private lateinit var result: TextView
-    private lateinit var typeText: TextView
+    private lateinit var localButton: Button
+    private lateinit var nonLocalButton: Button
 
-    private var local = true
+    private var selectedStartDate: Calendar? = null
 
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
-    }
+    // بومی = ۵ روز کسری به ازای هر ماه
+    // غیربومی = ۱۲ روز کسری به ازای هر ماه
+    private var deductionDaysPerMonth = 5
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(
-                dp(18),
-                dp(18),
-                dp(18),
-                dp(18)
-            )
-            setBackgroundColor(
-                Color.rgb(247, 249, 248)
-            )
-        }
+        createUserInterface()
+    }
 
-        val content = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
+    private fun createUserInterface() {
 
-        val scroll = ScrollView(this)
-        scroll.addView(content)
+        val root = LinearLayout(this)
 
-        // عنوان
-        content.addView(
-            TextView(this).apply {
-                text = "🎖️  محاسبه‌گر پایان خدمت"
-                textSize = 25f
-                typeface = Typeface.DEFAULT_BOLD
-                gravity = Gravity.CENTER
-                setTextColor(
-                    Color.rgb(15, 118, 110)
-                )
-                setPadding(
-                    0,
-                    dp(8),
-                    0,
-                    dp(4)
-                )
-            }
+        root.orientation = LinearLayout.VERTICAL
+        root.gravity = Gravity.CENTER_HORIZONTAL
+        root.setPadding(32, 40, 32, 40)
+
+        val title = TextView(this)
+
+        title.text = "محاسبه‌گر پایان خدمت"
+        title.textSize = 27f
+        title.gravity = Gravity.CENTER
+        title.setPadding(0, 0, 0, 12)
+
+        root.addView(title)
+
+        val subtitle = TextView(this)
+
+        subtitle.text = "مدت پایه خدمت: ۲۱ ماه"
+        subtitle.textSize = 17f
+        subtitle.gravity = Gravity.CENTER
+        subtitle.setPadding(0, 0, 0, 8)
+
+        root.addView(subtitle)
+
+        val developer = TextView(this)
+
+        developer.text = "این اپ توسط محمد سریوه توسعه داده شده است"
+        developer.textSize = 14f
+        developer.gravity = Gravity.CENTER
+        developer.setPadding(0, 0, 0, 25)
+
+        root.addView(developer)
+
+        val typeTitle = TextView(this)
+
+        typeTitle.text = "نوع خدمت را انتخاب کنید:"
+        typeTitle.textSize = 18f
+        typeTitle.gravity = Gravity.RIGHT
+
+        root.addView(typeTitle)
+
+        val typeLayout = LinearLayout(this)
+
+        typeLayout.orientation = LinearLayout.HORIZONTAL
+        typeLayout.gravity = Gravity.CENTER
+        typeLayout.setPadding(0, 8, 0, 15)
+
+        localButton = Button(this)
+
+        localButton.text = "بومی\n۵ روز"
+        localButton.isAllCaps = false
+
+        nonLocalButton = Button(this)
+
+        nonLocalButton.text = "غیربومی\n۱۲ روز"
+        nonLocalButton.isAllCaps = false
+
+        typeLayout.addView(
+            localButton,
+            LinearLayout.LayoutParams(0, -2, 1f)
         )
 
-        // توضیح
-        content.addView(
-            TextView(this).apply {
-                text = "ابتدا نوع خدمت را انتخاب کنید"
-                textSize = 14f
-                gravity = Gravity.CENTER
-                setTextColor(Color.DKGRAY)
-                setPadding(
-                    0,
-                    0,
-                    0,
-                    dp(12)
-                )
-            }
+        typeLayout.addView(
+            nonLocalButton,
+            LinearLayout.LayoutParams(0, -2, 1f)
         )
 
-        // -------------------------------------------------
-        // انتخاب بومی / غیر بومی
-        // -------------------------------------------------
+        root.addView(typeLayout)
 
-        val typeBox = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+        localButton.setOnClickListener {
+
+            deductionDaysPerMonth = 5
+
+            Toast.makeText(
+                this,
+                "خدمت بومی انتخاب شد؛ ۵ روز کسری به ازای هر ماه",
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
-        lateinit var localButton: Button
-        lateinit var nonLocalButton: Button
+        nonLocalButton.setOnClickListener {
 
-        localButton = Button(this).apply {
-            text = "🇮🇷  بومی\n۵ روز"
-            textSize = 15f
+            deductionDaysPerMonth = 12
 
-            setOnClickListener {
-                local = true
-
-                typeText.text =
-                    "نوع خدمت: 🇮🇷 بومی  |  کسری ماهانه: ۵ روز"
-
-                setSelectedButton(
-                    this,
-                    true
-                )
-
-                setSelectedButton(
-                    nonLocalButton,
-                    false
-                )
-            }
+            Toast.makeText(
+                this,
+                "خدمت غیربومی انتخاب شد؛ ۱۲ روز کسری به ازای هر ماه",
+                Toast.LENGTH_SHORT
+            ).show()
         }
 
-        nonLocalButton = Button(this).apply {
-            text = "🌍  غیر بومی\n۱۲ روز"
-            textSize = 15f
+        val dateTitle = TextView(this)
 
-            setOnClickListener {
-                local = false
+        dateTitle.text = "تاریخ شروع خدمت:"
+        dateTitle.textSize = 18f
+        dateTitle.gravity = Gravity.RIGHT
+        dateTitle.setPadding(0, 10, 0, 8)
 
-                typeText.text =
-                    "نوع خدمت: 🌍 غیر بومی  |  کسری ماهانه: ۱۲ روز"
+        root.addView(dateTitle)
 
-                setSelectedButton(
-                    this,
-                    true
-                )
+        startDateText = TextView(this)
 
-                setSelectedButton(
-                    localButton,
-                    false
-                )
-            }
+        startDateText.text = "برای انتخاب تاریخ کلیک کنید"
+        startDateText.textSize = 17f
+        startDateText.gravity = Gravity.CENTER
+        startDateText.setPadding(20, 22, 20, 22)
+
+        startDateText.setOnClickListener {
+
+            showDatePicker()
         }
 
-        typeBox.addView(
+        root.addView(startDateText)
 
-Mohammad, [8/14/2026 12:56]
-// -------------------------------------------------
-        // نام سازنده
-        // -------------------------------------------------
+        val extraTitle = TextView(this)
 
-        content.addView(
-            TextView(this).apply {
+        extraTitle.text = "کسری‌های اضافه:"
+        extraTitle.textSize = 18f
+        extraTitle.gravity = Gravity.RIGHT
+        extraTitle.setPadding(0, 18, 0, 8)
 
-                text =
-                    "این اپ توسط محمد سریوه توسعه داده شده است"
+        root.addView(extraTitle)
 
-                textSize = 13f
+        val extraHint = TextView(this)
 
-                gravity = Gravity.CENTER
+        extraHint.text = "مثلاً اگر ۶ ماه کسری بسیجی دارید، عدد ۶ را وارد کنید."
+        extraHint.textSize = 13f
+        extraHint.gravity = Gravity.RIGHT
 
-                setTextColor(Color.GRAY)
+        root.addView(extraHint)
 
-                setPadding(
-                    0,
-                    dp(22),
-                    0,
-                    dp(8)
-                )
-            }
-        )
+        extraDeductionInput = EditText(this)
 
-        root.addView(
-            scroll,
-            LinearLayout.LayoutParams(
-                -1,
-                0,
-                1f
-            )
-        )
+        extraDeductionInput.hint = "تعداد ماه کسری اضافه"
+        extraDeductionInput.inputType =
+            InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+
+        root.addView(extraDeductionInput)
+
+        val calculateButton = Button(this)
+
+        calculateButton.text = "محاسبه پایان خدمت"
+        calculateButton.textSize = 18f
+        calculateButton.isAllCaps = false
+        calculateButton.setPadding(0, 15, 0, 15)
+
+        calculateButton.setOnClickListener {
+
+            calculateService()
+        }
+
+        root.addView(calculateButton)
+
+        resultText = TextView(this)
+
+        resultText.textSize = 16f
+        resultText.gravity = Gravity.RIGHT
+        resultText.setPadding(0, 25, 0, 10)
+
+        root.addView(resultText)
 
         setContentView(root)
     }
 
-    // =====================================================
-    // ظاهر دکمه انتخاب
-    // =====================================================
+    private fun showDatePicker() {
 
-    private fun setSelectedButton(
-        button: Button,
-        selected: Boolean
-    ) {
-        button.alpha =
-            if (selected) 1f else 0.55f
-    }
+        val today = Calendar.getInstance()
 
-    // =====================================================
-    // Label
-    // =====================================================
+        val initial = selectedStartDate ?: today
 
-    private fun label(
-        textValue: String
-    ): TextView {
+        val dialog = DatePickerDialog(
+            this,
+            { _, year, month, dayOfMonth ->
 
-        return TextView(this).apply {
+                selectedStartDate = Calendar.getInstance()
 
-            text = textValue
-
-            textSize = 15f
-
-            typeface =
-                Typeface.DEFAULT_BOLD
-
-            setTextColor(
-                Color.rgb(
-                    50,
-                    65,
-                    60
-                )
-            )
-
-            setPadding(
-                0,
-                dp(8),
-                0,
-                dp(4)
-            )
-        }
-    }
-
-    // =====================================================
-    // Input
-    // =====================================================
-
-    private fun input(
-        hintText: String
-    ): EditText {
-
-        return EditText(this).apply {
-
-            hint = hintText
-
-            textSize = 16f
-
-            setPadding(
-                dp(12),
-                dp(10),
-                dp(12),
-                dp(10)
-            )
-
-            background =
-                GradientDrawable().apply {
-
-                    setColor(Color.WHITE)
-
-                    cornerRadius =
-                        dp(10).toFloat()
-
-                    setStroke(
-                        dp(1),
-                        Color.rgb(
-                            210,
-                            220,
-                            216
-                        )
-                    )
-                }
-        }
-    }
-
-    // =====================================================
-    // تبدیل اعداد فارسی به انگلیسی
-    // =====================================================
-
-    private fun normalize(
-        value: String
-    ): String {
-
-        return value.map {
-
-            when (it) {
-
-                '۰' -> '0'
-                '۱' -> '1'
-                '۲' -> '2'
-                '۳' -> '3'
-                '۴' -> '4'
-                '۵' -> '5'
-                '۶' -> '6'
-                '۷' -> '7'
-                '۸' -> '8'
-                '۹' -> '9'
-
-                else -> it
-            }
-
-        }.joinToString("")
-    }
-
-    // =====================================================
-    // تبدیل تاریخ شمسی وارد شده
-    // =====================================================
-
-    private fun parse(
-        value: String
-    ): JDate? {
-
-        val parts =
-            normalize(value.trim())
-                .split(
-                    "/",
-                    "-",
-                    "."
-                )
-                .mapNotNull {
-                    it.toIntOrNull()
-                }
-
-        if (parts.size != 3) {
-            return null
-        }
-
-        val y = parts[0]
-        val m = parts[1]
-        val d = parts[2]
-
-        if (m !in 1..12) {
-            return null
-        }
-
-Mohammad, [8/14/2026 12:56]
-localButton,
-            LinearLayout.LayoutParams(
-                0,
-                dp(70),
-                1f
-            ).apply {
-                setMargins(
-                    0,
-                    0,
-                    dp(6),
-                    0
-                )
-            }
-        )
-
-        typeBox.addView(
-            nonLocalButton,
-            LinearLayout.LayoutParams(
-                0,
-                dp(70),
-                1f
-            ).apply {
-                setMargins(
-                    dp(6),
+                selectedStartDate!!.set(
+                    year,
+                    month,
+                    dayOfMonth,
                     0,
                     0,
                     0
                 )
-            }
+
+                selectedStartDate!!.set(
+                    Calendar.MILLISECOND,
+                    0
+                )
+
+                startDateText.text =
+                    formatJalali(selectedStartDate!!)
+            },
+            initial.get(Calendar.YEAR),
+            initial.get(Calendar.MONTH),
+            initial.get(Calendar.DAY_OF_MONTH)
         )
 
-        content.addView(typeBox)
-
-        // متن نوع خدمت
-        typeText = TextView(this).apply {
-            text =
-                "نوع خدمت: 🇮🇷 بومی  |  کسری ماهانه: ۵ روز"
-
-            textSize = 14f
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-
-            setTextColor(
-                Color.rgb(15, 118, 110)
-            )
-
-            setPadding(
-                0,
-                dp(12),
-                0,
-                dp(10)
-            )
-        }
-
-        content.addView(typeText)
-
-        setSelectedButton(
-            localButton,
-            true
-        )
-
-        // -------------------------------------------------
-        // تاریخ شروع
-        // -------------------------------------------------
-
-        content.addView(
-            label("تاریخ شروع خدمت")
-        )
-
-        start = input(
-            "مثال: ۱۴۰۴/۱۱/۰۱"
-        )
-
-        content.addView(start)
-
-        // -------------------------------------------------
-        // کسری ماه
-        // -------------------------------------------------
-
-        content.addView(
-            label("کسری اضافی (ماه)")
-        )
-
-        extraMonths = input(
-            "مثال: ۶"
-        )
-
-        extraMonths.inputType = 2
-
-        content.addView(extraMonths)
-
-        // -------------------------------------------------
-        // کسری روز
-        // -------------------------------------------------
-
-        content.addView(
-            label("کسری اضافی (روز)")
-        )
-
-        extraDays = input(
-            "مثال: ۰"
-        )
-
-        extraDays.inputType = 2
-
-        content.addView(extraDays)
-
-        // -------------------------------------------------
-        // دکمه محاسبه
-        // -------------------------------------------------
-
-        content.addView(
-            Button(this).apply {
-                text = "🧮  محاسبه پایان خدمت"
-                textSize = 16f
-
-                setOnClickListener {
-                    calculate()
-                }
-            }
-        )
-
-        // -------------------------------------------------
-        // دکمه تاریخ امروز
-        // -------------------------------------------------
-
-        content.addView(
-            Button(this).apply {
-                text = "📅  استفاده از تاریخ امروز"
-
-                setOnClickListener {
-                    start.setText(
-                        format(todayJ())
-                    )
-                }
-            }
-        )
-
-        // -------------------------------------------------
-        // نتیجه
-        // -------------------------------------------------
-
-        result = TextView(this).apply {
-
-            textSize = 16f
-
-            setTextColor(
-                Color.rgb(25, 55, 50)
-            )
-
-            setPadding(
-                dp(14),
-                dp(16),
-                dp(14),
-                dp(16)
-            )
-
-            background =
-                GradientDrawable().apply {
-
-                    setColor(Color.WHITE)
-
-                    cornerRadius =
-                        dp(14).toFloat()
-
-                    setStroke(
-                        dp(1),
-                        Color.rgb(
-                            210,
-                            220,
-                            216
-                        )
-                    )
-                }
-        }
-
-        content.addView(result)
-
-Mohammad, [8/14/2026 12:56]
-intArrayOf(
-                0,
-                31,
-                59,
-                90,
-                120,
-                151,
-                181,
-                212,
-                243,
-                273,
-                304,
-                334
-            )
-
-        var days =
-            365 * (gy - 1600) +
-                    (gy - 1600 + 3) / 4 -
-                    (gy - 1600 + 99) / 100 +
-                    (gy - 1600 + 399) / 400 +
-                    gd -
-                    1 +
-                    monthDays[gm - 1]
-
-        val gregorianLeap =
-            (
-                gy % 4 == 0 &&
-                        gy % 100 != 0
-                ) ||
-                    gy % 400 == 0
-
-        if (
-            gm > 2 &&
-            gregorianLeap
-        ) {
-            days++
-        }
-
-        var j =
-            days - 79
-
-        val n =
-            j / 12053
-
-        j %= 12053
-
-        var jy =
-            979 +
-                    33 * n +
-                    4 * (j / 1461)
-
-        j %= 1461
-
-        if (j >= 366) {
-
-            jy +=
-                (j - 1) / 365
-
-            j =
-                (j - 1) % 365
-        }
-
-        val jm =
-            if (j < 186) {
-
-                1 + j / 31
-
-            } else {
-
-                7 + (j - 186) / 30
-            }
-
-        val day =
-            1 +
-                    if (j < 186) {
-
-                        j % 31
-
-                    } else {
-
-                        (j - 186) % 30
-                    }
-
-        return JDate(
-            jy,
-            jm,
-            day
-        )
+        dialog.show()
     }
 
-    // =====================================================
-    // محاسبه اصلی
-    // =====================================================
+    private fun calculateService() {
 
-    private fun calculate() {
+        val start = selectedStartDate
 
-        val startDate =
-            parse(
-                start.text.toString()
-            )
+        if (start == null) {
 
-        if (startDate == null) {
-
-            result.text =
-                "❌ تاریخ شروع را به شکل زیر وارد کن:\n\n۱۴۰۴/۱۱/۰۱"
+            Toast.makeText(
+                this,
+                "لطفاً ابتدا تاریخ شروع خدمت را انتخاب کنید.",
+                Toast.LENGTH_LONG
+            ).show()
 
             return
         }
 
-        val extraMonth =
-            normalize(
-                extraMonths.text.toString()
-            ).toDoubleOrNull()
-                ?: 0.0
+        val extraMonthsText =
+            extraDeductionInput.text.toString().trim()
 
-        val extraDay =
-            normalize(
-                extraDays.text.toString()
-            ).toDoubleOrNull()
-                ?: 0.0
-
-        val extraTotal =
-            extraMonth +
-                    extraDay / 30.0
-
-        // -------------------------------------------------
-        // نرخ کسری
-        // -------------------------------------------------
-
-        val rateDays =
-            if (local) 5 else 12
-
-        val rateText =
-            if (local) "۵" else "۱۲"
-
-        val serviceType =
-            if (local) {
-                "🇮🇷 بومی"
+        val extraMonths =
+            if (extraMonthsText.isEmpty()) {
+                0.0
             } else {
-                "🌍 غیر بومی"
+                extraMonthsText.toDoubleOrNull()
+                    ?: 0.0
             }
 
-        // -------------------------------------------------
-        // فرمول
-        //
-        // x + x*(rate/30) + extra = 21
-        //
-        // -------------------------------------------------
+        if (extraMonths < 0) {
 
-        val actualService =
-            (
-                21.0 -
-                        extraTotal
-                ) /
-                    (
-                        1.0 +
-                                rateDays / 30.0
-                        )
+            Toast.makeText(
+                this,
+                "مقدار کسری نمی‌تواند منفی باشد.",
+                Toast.LENGTH_LONG
+            ).show()
 
-        val serviceMonths =
-            floor(
-                actualService
-            ).toInt()
+            return
+        }
 
-        val serviceDays =
-            round(
-                (
-                    actualService -
-                            serviceMonths
-                    ) * 30.0
-            ).toInt()
+        /*
+         * قاعده برنامه:
+         *
+         * کل خدمت = ۲۱ ماه
+         *
+         * اگر فرد X ماه خدمت کند:
+         *
+         * کسری ماهانه = X × تعداد روز کسری
+         *
+         * بنابراین:
+         *
+         * X ماه خدمت
+         * + کسری همان X ماه
+         * + کسری‌های اضافه
+         * = ۲۱ ماه
+         *
+         * هر ماه برای محاسبه روزها ۳۰ روز در نظر گرفته شده است.
+         */
 
-        val monthlyDeduction =
-            round(
-                actualService *
-                        rateDays
-            ).toInt()
+        val baseDays = 21.0 * 30.0
 
-        // -------------------------------------------------
-        // محاسبه تاریخ پایان
-        // -------------------------------------------------
+        val extraDeductionDays =
+            extraMonths * 30.0
+
+        val rate = deductionDaysPerMonth.toDouble()
+
+        /*
+         * X*30 + X*rate + extra = 21*30
+         *
+         * X = (21*30 - extra) / (30 + rate)
+         */
+
+        val actualServiceDays =
+            (baseDays - extraDeductionDays) /
+                    (30.0 + rate) * 30.0
+
+        if (actualServiceDays < 0) {
+
+            Toast.makeText(
+                this,
+                "مقدار کسری واردشده از مدت خدمت بیشتر است.",
+                Toast.LENGTH_LONG
+            ).show()
+
+            return
+        }
+
+        val actualServiceMonths =
+            actualServiceDays / 30.0
+
+        val monthlyDeductionDays =
+            actualServiceMonths * rate
+
+        val totalDeductionDays =
+            monthlyDeductionDays + extraDeductionDays
 
         val finishDate =
             addDays(
-                addMonths(
-                    startDate,
-                    serviceMonths
-                ),
-                serviceDays - 1
+                start,
+                floor(actualServiceDays).toInt()
             )
 
-Mohammad, [8/14/2026 12:56]
-val maxDay =
-            if (m <= 6) {
-                31
-            } else if (m <= 11) {
-                30
+        val serviceType =
+            if (deductionDaysPerMonth == 5) {
+                "بومی"
             } else {
-                if (leap(y)) 30 else 29
+                "غیربومی"
             }
 
-        if (y < 1300) {
-            return null
-        }
+        val result = StringBuilder()
 
-        if (d !in 1..maxDay) {
-            return null
-        }
+        result.append("━━━━━━━━━━━━━━━━━━\n")
+        result.append(" نتیجه محاسبه\n")
+        result.append("━━━━━━━━━━━━━━━━━━\n\n")
 
-        return JDate(
-            y,
-            m,
-            d
-        )
+        result.append("نوع خدمت: ")
+        result.append(serviceType)
+        result.append("\n")
+
+        result.append("مدت خدمت پایه: ۲۱ ماه\n")
+
+        result.append("کسری ماهانه: ")
+        result.append(deductionDaysPerMonth)
+        result.append(" روز به ازای هر ماه\n\n")
+
+        result.append("تاریخ شروع:\n")
+        result.append(formatJalali(start))
+        result.append("\n\n")
+
+        result.append("محاسبات:\n")
+        result.append("──────────────────\n")
+
+        result.append("مدت پایه:\n")
+        result.append("۲۱ × ۳۰ = ")
+        result.append(formatNumber(baseDays))
+        result.append(" روز\n\n")
+
+        result.append("کسری‌های اضافه:\n")
+        result.append(formatNumber(extraMonths))
+        result.append(" ماه × ۳۰ = ")
+        result.append(formatNumber(extraDeductionDays))
+        result.append(" روز\n\n")
+
+        result.append("مدت خدمت واقعی:\n")
+        result.append(formatNumber(actualServiceDays))
+        result.append(" روز\n")
+
+        result.append("تقریباً ")
+        result.append(formatNumber(actualServiceMonths))
+        result.append(" ماه\n\n")
+
+        result.append("کسری ناشی از خدمت:\n")
+        result.append(formatNumber(actualServiceMonths))
+        result.append(" × ")
+        result.append(deductionDaysPerMonth)
+        result.append(" = ")
+        result.append(formatNumber(monthlyDeductionDays))
+        result.append(" روز\n\n")
+
+        result.append("مجموع کسری:\n")
+        result.append(formatNumber(totalDeductionDays))
+        result.append(" روز\n\n")
+
+        result.append("━━━━━━━━━━━━━━━━━━\n")
+        result.append("تاریخ پایان خدمت:\n")
+        result.append(formatJalali(finishDate))
+        result.append("\n")
+        result.append("━━━━━━━━━━━━━━━━━━\n\n")
+
+        result.append("این محاسبه بر اساس قواعد واردشده در برنامه انجام شده است.")
+
+        resultText.text = result.toString()
     }
-
-    // =====================================================
-    // سال کبیسه
-    // =====================================================
-
-    private fun leap(
-        year: Int
-    ): Boolean {
-
-        val r =
-            ((year - 474) % 2820 + 2820) % 2820
-
-        return r in 0..1
-    }
-
-    // =====================================================
-    // تعداد روزهای ماه
-    // =====================================================
-
-    private fun dim(
-        year: Int,
-        month: Int
-    ): Int {
-
-        return when {
-
-            month <= 6 ->
-                31
-
-            month <= 11 ->
-                30
-
-            leap(year) ->
-                30
-
-            else ->
-                29
-        }
-    }
-
-    // =====================================================
-    // اضافه کردن روز
-    // =====================================================
 
     private fun addDays(
-        date: JDate,
-        amount: Int
-    ): JDate {
+        source: Calendar,
+        days: Int
+    ): Calendar {
 
-        var y = date.y
-        var m = date.m
-        var d = date.d
+        val result = Calendar.getInstance()
 
-        var n = amount
+        result.timeInMillis = source.timeInMillis
 
-        while (n > 0) {
-
-            d++
-
-            if (d > dim(y, m)) {
-
-                d = 1
-
-                if (m == 12) {
-
-                    m = 1
-                    y++
-
-                } else {
-
-                    m++
-                }
-            }
-
-            n--
-        }
-
-        return JDate(
-            y,
-            m,
-            d
+        result.add(
+            Calendar.DAY_OF_MONTH,
+            days
         )
+
+        return result
     }
 
-    // =====================================================
-    // اضافه کردن ماه
-    // =====================================================
+    private fun formatNumber(number: Double): String {
 
-    private fun addMonths(
-        date: JDate,
-        amount: Int
-    ): JDate {
-
-        var y = date.y
-        var m = date.m
-        var d = date.d
-
-        repeat(amount) {
-
-            if (m == 12) {
-
-                m = 1
-                y++
-
-            } else {
-
-                m++
-            }
-
-            d =
-                minOf(
-                    d,
-                    dim(y, m)
-                )
-        }
-
-        return JDate(
-            y,
-            m,
-            d
-        )
-    }
-
-    // =====================================================
-    // نمایش تاریخ
-    // =====================================================
-
-    private fun format(
-        date: JDate
-    ): String {
-
-        return String.format(
-            Locale.US,
-            "%04d/%02d/%02d",
-            date.y,
-            date.m,
-            date.d
-        )
-    }
-
-    // =====================================================
-    // نمایش عدد
-    // =====================================================
-
-    private fun formatNum(
-        value: Double
-    ): String {
-
-        return if (
-            kotlin.math.abs(
-                value - value.toInt()
-            ) < 0.0001
-        ) {
-
-            value.toInt().toString()
-
-        } else {
-
+        val rounded =
             String.format(
                 Locale.US,
                 "%.2f",
-                value
+                number
             )
-        }
+
+        return rounded
+            .replace(".00", "")
+            .replace('.', '/')
     }
 
-    // =====================================================
-    // تاریخ امروز شمسی
-    // =====================================================
-
-    private fun todayJ(): JDate {
-
-        val calendar =
-            Calendar.getInstance()
+    private fun formatJalali(
+        calendar: Calendar
+    ): String {
 
         val gy =
             calendar.get(Calendar.YEAR)
@@ -912,59 +453,167 @@ val maxDay =
         val gd =
             calendar.get(Calendar.DAY_OF_MONTH)
 
-        val monthDays =
+        val result =
+            gregorianToJalali(
+                gy,
+                gm,
+                gd
+            )
 
-Mohammad, [8/14/2026 12:56]
-// -------------------------------------------------
-        // نمایش نتیجه
-        // -------------------------------------------------
+        val year =
+            result[0].toString()
 
-        result.text =
-            """
-🎯  تاریخ پایان خدمت
-━━━━━━━━━━━━━━━━
+        val month =
+            result[1].toString().padStart(2, '0')
 
-${format(finishDate)}
+        val day =
+            result[2].toString().padStart(2, '0')
 
-📌 جزئیات محاسبه
+        return toPersianDigits(
+            "$year/$month/$day"
+        )
+    }
 
-نوع خدمت:
-$serviceType
+    private fun toPersianDigits(
+        value: String
+    ): String {
 
-خدمت اسمی:
-۲۱ ماه
+        val english =
+            "0123456789"
 
-کسری به ازای هر ماه خدمت:
-$rateText روز
+        val persian =
+            "۰۱۲۳۴۵۶۷۸۹"
 
-کسری اضافی:
-${formatNum(extraMonth)} ماه و ${formatNum(extraDay)} روز
+        return value.map { character ->
 
-مجموع کسری اضافی:
-${formatNum(extraTotal)} ماه
+            val index =
+                english.indexOf(character)
 
-━━━━━━━━━━━━━━━━
+            if (index >= 0) {
+                persian[index]
+            } else {
+                character
+            }
 
-📐 فرمول محاسبه:
+        }.joinToString("")
+    }
 
-x + (x × $rateText/۳۰) + کسری اضافی = ۲۱
+    /*
+     * تبدیل میلادی به شمسی
+     */
+    private fun gregorianToJalali(
+        gy: Int,
+        gm: Int,
+        gd: Int
+    ): IntArray {
 
-مدت خدمت واقعی:
+        val gDaysInMonth =
+            intArrayOf(
+                31, 28, 31, 30,
+                31, 30, 31, 31,
+                30, 31, 30, 31
+            )
 
-$serviceMonths ماه و $serviceDays روز
+        val jDaysInMonth =
+            intArrayOf(
+                31, 31, 31, 31,
+                31, 31, 30, 30,
+                30, 30, 30, 29
+            )
 
-کسری حاصل از خدمت ماهانه:
+        var gyTemp =
+            gy - 1600
 
-$monthlyDeduction روز
+        val gmTemp =
+            gm - 1
 
-━━━━━━━━━━━━━━━━
+        val gdTemp =
+            gd - 1
 
-📅 تاریخ شروع:
-${format(startDate)}
+        var gDayNo =
+            365 * gyTemp +
+                    (gyTemp + 3) / 4 -
+                    (gyTemp + 99) / 100 +
+                    (gyTemp + 399) / 400
 
-✅ تاریخ نهایی پایان خدمت:
+        var i = 0
 
-${format(finishDate)}
-            """.trimIndent()
+        while (i < gmTemp) {
+
+            gDayNo +=
+                gDaysInMonth[i]
+
+            i++
+        }
+
+        if (
+            gmTemp > 1 &&
+            isGregorianLeap(gy)
+        ) {
+
+            gDayNo++
+        }
+
+        gDayNo += gdTemp
+
+        var jDayNo =
+            gDayNo - 79
+
+        val jNp =
+            jDayNo / 12053
+
+        jDayNo %= 12053
+
+        var jy =
+            979 +
+                    33 * jNp +
+                    4 * (jDayNo / 1461)
+
+        jDayNo %= 1461
+
+        if (jDayNo >= 366) {
+
+            jy +=
+                (jDayNo - 1) / 365
+
+            jDayNo =
+                (jDayNo - 1) % 365
+        }
+
+        var jm = 0
+
+        while (
+            jm < 11 &&
+            jDayNo >= jDaysInMonth[jm]
+        ) {
+
+            jDayNo -=
+                jDaysInMonth[jm]
+
+            jm++
+        }
+
+        val jd =
+            jDayNo + 1
+
+        return intArrayOf(
+            jy,
+            jm + 1,
+            jd
+        )
+    }
+
+    private fun isGregorianLeap(
+        year: Int
+    ): Boolean {
+
+        return (
+                year % 4 == 0 &&
+                        (
+                                year % 100 != 0 ||
+                                        year % 400 == 0
+                                )
+                )
     }
 }
+
