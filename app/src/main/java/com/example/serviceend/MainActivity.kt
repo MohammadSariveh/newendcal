@@ -1,4 +1,3 @@
-Mohammad, [8/14/2026 12:56]
 package com.example.serviceend
 
 import android.app.Activity
