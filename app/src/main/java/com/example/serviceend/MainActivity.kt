@@ -58,16 +58,30 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
         }
 
-        val localButton = Button(this).apply {
-            text = "🇮🇷  بومی\n۵ روز"
-            textSize = 15f
-            setOnClickListener {
-                local = true
-                typeText.text = "نوع خدمت: 🇮🇷 بومی  |  کسری ماهانه: ۵ روز"
-                setSelectedButton(this, true)
-                setSelectedButton(nonLocalButton, false)
-            }
-        }
+    lateinit var localButton: Button
+    lateinit var nonLocalButton: Button
+
+    localButton = Button(this).apply {
+    text = "🇮🇷  بومی\n۵ روز"
+    textSize = 15f
+    setOnClickListener {
+        local = true
+        typeText.text = "نوع خدمت: 🇮🇷 بومی  |  کسری ماهانه: ۵ روز"
+        setSelectedButton(this, true)
+        setSelectedButton(nonLocalButton, false)
+    }
+}
+
+nonLocalButton = Button(this).apply {
+    text = "🌍  غیر بومی\n۱۲ روز"
+    textSize = 15f
+    setOnClickListener {
+        local = false
+        typeText.text = "نوع خدمت: 🌍 غیر بومی  |  کسری ماهانه: ۱۲ روز"
+        setSelectedButton(this, true)
+        setSelectedButton(localButton, false)
+    }
+}
 
         val nonLocalButton = Button(this).apply {
             text = "🌍  غیر بومی\n۱۲ روز"
